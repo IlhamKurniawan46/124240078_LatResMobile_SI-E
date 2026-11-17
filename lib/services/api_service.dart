@@ -19,7 +19,7 @@ class ApiException implements Exception {
 /// Service to interact with Spaceflight News API (SNAPI) v4
 class ApiService {
   static const String baseUrl = 'https://api.spaceflightnewsapi.net/v4';
-  static const Duration requestTimeout = Duration(seconds: 15);
+  static const Duration requestTimeout = Duration(seconds: 30);
 
   final http.Client _client;
 

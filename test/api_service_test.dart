@@ -1,4 +1,7 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
 import 'package:latres/models/article_model.dart';
 import 'package:latres/services/api_service.dart';
 
@@ -69,27 +72,80 @@ void main() {
     });
   });
 
-  group('ApiService Live Integration Test', () {
-    test('fetchList returns valid list of articles from SNAPI v4', () async {
-      final apiService = ApiService();
-      final articles = await apiService.fetchList(ContentType.news, limit: 2);
+  group('ApiService Mock Client Tests', () {
+    test('fetchList parses mock HTTP response correctly with limit parameter', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.url.path, '/v4/articles/');
+        expect(request.url.queryParameters['limit'], '50');
 
-      expect(articles, isNotEmpty);
-      expect(articles.length, lessThanOrEqualTo(2));
-      expect(articles.first.id, isPositive);
-      expect(articles.first.title, isNotEmpty);
-      expect(articles.first.author, isNotEmpty);
-      expect(articles.first.type, ContentType.news);
+        return http.Response(
+          jsonEncode({
+            'count': 1,
+            'results': [
+              {
+                'id': 1001,
+                'title': 'Mock Article Title',
+                'url': 'https://example.com/article',
+                'image_url': 'https://example.com/image.png',
+                'news_site': 'NASASpaceflight',
+                'summary': 'Mock summary',
+                'published_at': '2026-11-18T00:00:00Z',
+              }
+            ]
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final apiService = ApiService(client: mockClient);
+      final list = await apiService.fetchList(ContentType.news, limit: 50);
+
+      expect(list.length, 1);
+      expect(list.first.id, 1001);
+      expect(list.first.title, 'Mock Article Title');
+      expect(list.first.author, 'NASASpaceflight');
+      expect(list.first.type, ContentType.news);
     });
 
-    test('fetchDetail returns correct article', () async {
-      final apiService = ApiService();
-      final list = await apiService.fetchList(ContentType.news, limit: 1);
-      expect(list, isNotEmpty);
+    test('fetchDetail parses mock detail response correctly by ID', () async {
+      final mockClient = MockClient((request) async {
+        expect(request.url.path, '/v4/blogs/502/');
 
-      final detail = await apiService.fetchDetail(ContentType.news, list.first.id);
-      expect(detail.id, list.first.id);
-      expect(detail.title, list.first.title);
+        return http.Response(
+          jsonEncode({
+            'id': 502,
+            'title': 'Mock Blog Detail',
+            'url': 'https://example.com/blog',
+            'image_url': 'https://example.com/blog.png',
+            'news_site': 'SpaceX',
+            'summary': 'Mock blog summary detail',
+            'published_at': '2026-11-18T01:00:00Z',
+          }),
+          200,
+          headers: {'content-type': 'application/json; charset=utf-8'},
+        );
+      });
+
+      final apiService = ApiService(client: mockClient);
+      final detail = await apiService.fetchDetail(ContentType.blog, 502);
+
+      expect(detail.id, 502);
+      expect(detail.title, 'Mock Blog Detail');
+      expect(detail.author, 'SpaceX');
+      expect(detail.type, ContentType.blog);
+    });
+
+    test('fetchDetail throws ApiException on 404', () async {
+      final mockClient = MockClient((request) async {
+        return http.Response('Not Found', 404);
+      });
+
+      final apiService = ApiService(client: mockClient);
+      expect(
+        () => apiService.fetchDetail(ContentType.news, 999999),
+        throwsA(isA<ApiException>()),
+      );
     });
   });
 }

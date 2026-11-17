@@ -1,31 +1,12 @@
 import 'package:flutter/material.dart';
-import 'models/article_model.dart';
-import 'services/api_service.dart';
+import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
+import 'services/storage_service.dart';
 import 'utils/app_routes.dart';
 import 'utils/app_theme.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Temporary ApiService verification: Fetch 1 item to verify API connection & data parsing
-  try {
-    final apiService = ApiService();
-    final articles = await apiService.fetchList(ContentType.news, limit: 1);
-    if (articles.isNotEmpty) {
-      debugPrint('----------------------------------------------------');
-      debugPrint('[ApiService Verification] Data fetched successfully:');
-      debugPrint('ID          : ${articles.first.id}');
-      debugPrint('Title       : ${articles.first.title}');
-      debugPrint('Author      : ${articles.first.author}');
-      debugPrint('URL         : ${articles.first.url}');
-      debugPrint('Image URL   : ${articles.first.imageUrl}');
-      debugPrint('Type        : ${articles.first.type.displayName}');
-      debugPrint('----------------------------------------------------');
-    }
-  } catch (e) {
-    debugPrint('[ApiService Verification Error]: $e');
-  }
-
   runApp(const SpaceflightApp());
 }
 
@@ -38,8 +19,37 @@ class SpaceflightApp extends StatelessWidget {
       title: 'Spaceflight News',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
-      initialRoute: AppRoutes.login,
+      home: const AuthGate(),
       routes: AppRoutes.routes,
+    );
+  }
+}
+
+/// Initial authentication gate widget checking login session via FutureBuilder
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final storageService = StorageService();
+
+    return FutureBuilder<bool>(
+      future: storageService.isLoggedIn(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Scaffold(
+            body: Center(
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
+
+        if (snapshot.hasData && snapshot.data == true) {
+          return const HomeScreen();
+        }
+
+        return const LoginScreen();
+      },
     );
   }
 }
