@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/article_model.dart';
 import '../services/api_service.dart';
+import '../services/storage_service.dart';
 import '../utils/constants.dart';
 import '../utils/snackbar_helper.dart';
 
@@ -9,6 +10,7 @@ class DetailScreen extends StatefulWidget {
   final ContentType type;
   final int id;
   final ApiService? apiService;
+  final StorageService? storageService;
   final Future<bool> Function(Uri, {LaunchMode mode})? urlLauncher;
 
   const DetailScreen({
@@ -16,6 +18,7 @@ class DetailScreen extends StatefulWidget {
     this.type = ContentType.news,
     this.id = 0,
     this.apiService,
+    this.storageService,
     this.urlLauncher,
   });
 
@@ -25,6 +28,7 @@ class DetailScreen extends StatefulWidget {
 
 class _DetailScreenState extends State<DetailScreen> {
   late final ApiService _apiService;
+  late final StorageService _storageService;
   ArticleModel? _article;
   bool _isLoading = true;
   String? _errorMessage;
@@ -36,7 +40,43 @@ class _DetailScreenState extends State<DetailScreen> {
   void initState() {
     super.initState();
     _apiService = widget.apiService ?? ApiService();
+    _storageService = widget.storageService ?? StorageService();
     _fetchDetail();
+    _checkFavoriteStatus();
+  }
+
+  Future<void> _checkFavoriteStatus() async {
+    final fav = await _storageService.isFavorite(widget.type, widget.id);
+    if (mounted) {
+      setState(() {
+        _isFavorite = fav;
+      });
+    }
+  }
+
+  Future<void> _toggleFavorite() async {
+    if (_isFavorite) {
+      await _storageService.removeFavorite(widget.type, widget.id);
+      if (!mounted) return;
+      setState(() {
+        _isFavorite = false;
+      });
+      SnackbarHelper.showSuccess(
+        context,
+        AppConstants.removedFromFavoriteMessage,
+      );
+    } else {
+      if (_article == null) return;
+      await _storageService.addFavorite(_article!);
+      if (!mounted) return;
+      setState(() {
+        _isFavorite = true;
+      });
+      SnackbarHelper.showSuccess(
+        context,
+        AppConstants.addedToFavoriteMessage,
+      );
+    }
   }
 
   Future<void> _fetchDetail() async {
@@ -303,13 +343,7 @@ class _DetailScreenState extends State<DetailScreen> {
               color: _isFavorite ? Colors.red : null,
             ),
             tooltip: _isFavorite ? 'Hapus dari favorite' : 'Tambah ke favorite',
-            onPressed: () {
-              setState(() {
-                _isFavorite = !_isFavorite;
-              });
-              // - StorageService.toggleFavorite(_article!)
-              // - Tampilkan SnackBar: _isFavorite ? AppConstants.addedToFavoriteMessage : AppConstants.removedFromFavoriteMessage
-            },
+            onPressed: _toggleFavorite,
           ),
         ],
       ),

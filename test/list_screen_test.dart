@@ -8,8 +8,15 @@ import 'package:latres/screens/detail_screen.dart';
 import 'package:latres/screens/favorite_screen.dart';
 import 'package:latres/screens/list_screen.dart';
 import 'package:latres/services/api_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   final sampleArticles = [
     {
       'id': 101,

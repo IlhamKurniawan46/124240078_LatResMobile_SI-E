@@ -7,9 +7,16 @@ import 'package:latres/models/article_model.dart';
 import 'package:latres/screens/detail_screen.dart';
 import 'package:latres/services/api_service.dart';
 import 'package:latres/utils/constants.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
+  setUp(() {
+    SharedPreferences.setMockInitialValues({});
+  });
+
   final sampleArticleJson = {
     'id': 40846,
     'title': 'Next Vega C Launch Edges Closer to Christmas Day',

@@ -262,7 +262,9 @@ class _ListScreenState extends State<ListScreen> {
               await Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) => const FavoriteScreen(),
+                  builder: (_) => FavoriteScreen(
+                    apiService: _apiService,
+                  ),
                 ),
               );
             },
