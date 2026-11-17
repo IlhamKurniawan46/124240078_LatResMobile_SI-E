@@ -146,7 +146,7 @@ void main() {
 
       // Now data should be loaded successfully
       expect(find.text('SpaceX Launches Starship Flight 6'), findsOneWidget);
-      expect(find.text('NASASpaceflight'), findsOneWidget);
+      expect(find.text('NASASpaceflight'), findsWidgets);
     });
 
     testWidgets(
@@ -167,13 +167,13 @@ void main() {
 
       // Check article 1
       expect(find.text('SpaceX Launches Starship Flight 6'), findsOneWidget);
-      expect(find.text('NASASpaceflight'), findsOneWidget);
+      expect(find.text('NASASpaceflight'), findsWidgets);
 
       // Check article 2 with null image (fallback icon)
       expect(
           find.text('NASA Prepares Artemis II Astronauts for Moon Mission'),
           findsOneWidget);
-      expect(find.text('NASA'), findsOneWidget);
+      expect(find.text('NASA'), findsWidgets);
       expect(find.byIcon(Icons.broken_image), findsAtLeastNWidgets(1));
     });
 
@@ -255,6 +255,104 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(requestCount, 2);
+    });
+
+    testWidgets('Extracts unique authors alphabetically and renders FilterChips',
+        (tester) async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'count': sampleArticles.length, 'results': sampleArticles}),
+          200,
+        );
+      });
+      final apiService = ApiService(client: mockClient);
+
+      await tester.pumpWidget(createWidgetUnderTest(apiService: apiService));
+      await tester.pumpAndSettle();
+
+      // sampleArticles has 'NASASpaceflight' and 'NASA'. Alphabetical order: 'NASA', 'NASASpaceflight'
+      expect(find.byType(FilterChip), findsNWidgets(2));
+      expect(find.text('NASA'), findsWidgets);
+      expect(find.text('NASASpaceflight'), findsWidgets);
+    });
+
+    testWidgets(
+        'Selecting a chip filters articles, shows checkmark, and tapping again deselects to show all',
+        (tester) async {
+      final mockClient = MockClient((request) async {
+        return http.Response(
+          jsonEncode({'count': sampleArticles.length, 'results': sampleArticles}),
+          200,
+        );
+      });
+      final apiService = ApiService(client: mockClient);
+
+      await tester.pumpWidget(createWidgetUnderTest(apiService: apiService));
+      await tester.pumpAndSettle();
+
+      // Initially both articles are shown
+      expect(find.text('SpaceX Launches Starship Flight 6'), findsOneWidget);
+      expect(find.text('NASA Prepares Artemis II Astronauts for Moon Mission'),
+          findsOneWidget);
+
+      // Select 'NASA' chip
+      await tester.tap(find.byKey(const Key('filter_chip_NASA')));
+      await tester.pumpAndSettle();
+
+      // Only NASA article is visible
+      expect(find.text('NASA Prepares Artemis II Astronauts for Moon Mission'),
+          findsOneWidget);
+      expect(find.text('SpaceX Launches Starship Flight 6'), findsNothing);
+
+      // Tap 'NASA' chip again to deselect
+      await tester.tap(find.byKey(const Key('filter_chip_NASA')));
+      await tester.pumpAndSettle();
+
+      // Both articles visible again
+      expect(find.text('SpaceX Launches Starship Flight 6'), findsOneWidget);
+      expect(find.text('NASA Prepares Artemis II Astronauts for Moon Mission'),
+          findsOneWidget);
+    });
+
+    testWidgets('Filter state is preserved after returning from DetailScreen',
+        (tester) async {
+      final mockClient = MockClient((request) async {
+        if (request.url.path.contains('/101/')) {
+          return http.Response(jsonEncode(sampleArticles[0]), 200);
+        }
+        return http.Response(
+          jsonEncode({'count': sampleArticles.length, 'results': sampleArticles}),
+          200,
+        );
+      });
+      final apiService = ApiService(client: mockClient);
+
+      await tester.pumpWidget(createWidgetUnderTest(apiService: apiService));
+      await tester.pumpAndSettle();
+
+      // Select 'NASASpaceflight' chip
+      await tester.tap(find.byKey(const Key('filter_chip_NASASpaceflight')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('SpaceX Launches Starship Flight 6'), findsOneWidget);
+      expect(find.text('NASA Prepares Artemis II Astronauts for Moon Mission'),
+          findsNothing);
+
+      // Tap card to open DetailScreen
+      await tester.tap(find.text('SpaceX Launches Starship Flight 6'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(DetailScreen), findsOneWidget);
+
+      // Pop back to ListScreen
+      await tester.tap(find.byTooltip('Back'));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(ListScreen), findsOneWidget);
+      // Filter is still preserved
+      expect(find.text('SpaceX Launches Starship Flight 6'), findsOneWidget);
+      expect(find.text('NASA Prepares Artemis II Astronauts for Moon Mission'),
+          findsNothing);
     });
   });
 }

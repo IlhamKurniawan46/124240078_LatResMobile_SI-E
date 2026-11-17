@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/article_model.dart';
 import '../services/api_service.dart';
+import '../widgets/custom_filter_chip.dart';
 import 'detail_screen.dart';
 import 'favorite_screen.dart';
 
@@ -23,12 +24,37 @@ class _ListScreenState extends State<ListScreen> {
   List<ArticleModel> _articles = [];
   bool _isLoading = true;
   String? _errorMessage;
+  String? _selectedAuthor;
 
   @override
   void initState() {
     super.initState();
     _apiService = widget.apiService ?? ApiService();
     _fetchArticles();
+  }
+
+  /// Extracts unique authors from the fetched articles and sorts them alphabetically.
+  List<String> get _authors {
+    final set = <String>{};
+    for (final a in _articles) {
+      final trimmed = a.author.trim();
+      if (trimmed.isNotEmpty) {
+        set.add(trimmed);
+      }
+    }
+    final list = set.toList();
+    list.sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return list;
+  }
+
+  /// Returns client-side filtered articles based on selectedAuthor.
+  List<ArticleModel> get _filteredArticles {
+    if (_selectedAuthor == null || _selectedAuthor!.isEmpty) {
+      return _articles;
+    }
+    return _articles
+        .where((a) => a.author.trim() == _selectedAuthor!.trim())
+        .toList();
   }
 
   Future<void> _fetchArticles() async {
@@ -236,15 +262,52 @@ class _ListScreenState extends State<ListScreen> {
       );
     }
 
-    return RefreshIndicator(
-      onRefresh: _fetchArticles,
-      child: ListView.builder(
-        itemCount: _articles.length,
-        itemBuilder: (context, index) {
-          final article = _articles[index];
-          return _buildItemCard(article);
-        },
-      ),
+    final displayed = _filteredArticles;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CustomFilterChip(
+          authors: _authors,
+          selectedAuthor: _selectedAuthor,
+          onSelected: (author) {
+            setState(() {
+              _selectedAuthor = author;
+            });
+          },
+        ),
+        Expanded(
+          child: displayed.isEmpty
+              ? RefreshIndicator(
+                  onRefresh: _fetchArticles,
+                  child: ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      SizedBox(
+                        height: MediaQuery.of(context).size.height * 0.6,
+                        child: const Center(
+                          child: Text(
+                            'Tidak ada data untuk penerbit ini.',
+                            key: Key('filter_empty_text'),
+                            style: TextStyle(fontSize: 16, color: Colors.grey),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              : RefreshIndicator(
+                  onRefresh: _fetchArticles,
+                  child: ListView.builder(
+                    itemCount: displayed.length,
+                    itemBuilder: (context, index) {
+                      final article = displayed[index];
+                      return _buildItemCard(article);
+                    },
+                  ),
+                ),
+        ),
+      ],
     );
   }
 
