@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/content_type.dart';
 import '../screens/login_screen.dart';
 import '../screens/register_screen.dart';
 import '../screens/home_screen.dart';
@@ -20,7 +21,11 @@ class AppRoutes {
         login: (context) => const LoginScreen(),
         register: (context) => const RegisterScreen(),
         home: (context) => const HomeScreen(),
-        list: (context) => const ListScreen(),
+        list: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          final type = args is ContentType ? args : ContentType.news;
+          return ListScreen(type: type);
+        },
         detail: (context) => const DetailScreen(),
         favorite: (context) => const FavoriteScreen(),
       };

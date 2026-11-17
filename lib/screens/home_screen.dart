@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/content_type.dart';
 import '../services/storage_service.dart';
 import '../utils/app_routes.dart';
+import 'list_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -40,6 +42,84 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  void _navigateToList(ContentType type) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ListScreen(type: type),
+      ),
+    );
+  }
+
+  Widget _buildMenuCard({
+    required Key key,
+    required String title,
+    required String description,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return Card(
+      key: key,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      elevation: 2,
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.primaryContainer,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  icon,
+                  size: 32,
+                  color: Theme.of(context).colorScheme.onPrimaryContainer,
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    Text(
+                      description,
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade700,
+                        height: 1.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right,
+                color: Colors.grey,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -50,53 +130,61 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
       ),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Icon(
-                Icons.check_circle_outline,
-                size: 80,
-                color: Colors.green,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Selamat Datang, $_username!',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
+        child: _isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : SingleChildScrollView(
+                padding: const EdgeInsets.all(20.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildMenuCard(
+                      key: const Key('home_card_news'),
+                      title: 'News',
+                      description:
+                          'Get an overview of the latest SpaceFlight news, from various sources! Easily link your users to the right websites.',
+                      icon: Icons.newspaper,
+                      onTap: () => _navigateToList(ContentType.news),
+                    ),
+                    _buildMenuCard(
+                      key: const Key('home_card_blog'),
+                      title: 'Blog',
+                      description:
+                          'Blogs often provide a more detailed overview of launches and missions. A must-have for the serious spaceflight enthusiast.',
+                      icon: Icons.article_outlined,
+                      onTap: () => _navigateToList(ContentType.blog),
+                    ),
+                    _buildMenuCard(
+                      key: const Key('home_card_reports'),
+                      title: 'Reports',
+                      description:
+                          'Space stations and other missions often publish their data. With SNAPI, you can include it in your app.',
+                      icon: Icons.assessment_outlined,
+                      onTap: () => _navigateToList(ContentType.report),
+                    ),
+                    const SizedBox(height: 20),
+                    ElevatedButton.icon(
+                      key: const Key('home_logout_button'),
+                      onPressed: _handleLogout,
+                      icon: const Icon(Icons.logout),
+                      label: const Text(
+                        'Log Out',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              const Spacer(),
-
-              // Tombol Log Out sementara (warna merah)
-              ElevatedButton.icon(
-                key: const Key('home_logout_button'),
-                onPressed: _handleLogout,
-                icon: const Icon(Icons.logout),
-                label: const Text(
-                  'Log Out',
-                  style: TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
