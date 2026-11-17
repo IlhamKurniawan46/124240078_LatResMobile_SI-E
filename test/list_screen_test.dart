@@ -215,10 +215,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.byType(DetailScreen), findsOneWidget);
-      expect(
-        find.textContaining('Detail Screen Placeholder (type: news, id: 101)'),
-        findsOneWidget,
-      );
+      final detailWidget =
+          tester.widget<DetailScreen>(find.byType(DetailScreen));
+      expect(detailWidget.type, ContentType.news);
+      expect(detailWidget.id, 101);
     });
 
     testWidgets('Pull to refresh re-fetches articles', (tester) async {

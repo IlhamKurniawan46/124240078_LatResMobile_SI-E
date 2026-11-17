@@ -26,7 +26,15 @@ class AppRoutes {
           final type = args is ContentType ? args : ContentType.news;
           return ListScreen(type: type);
         },
-        detail: (context) => const DetailScreen(),
+        detail: (context) {
+          final args = ModalRoute.of(context)?.settings.arguments;
+          if (args is Map<String, dynamic>) {
+            final type = args['type'] as ContentType? ?? ContentType.news;
+            final id = args['id'] as int? ?? 0;
+            return DetailScreen(type: type, id: id);
+          }
+          return const DetailScreen();
+        },
         favorite: (context) => const FavoriteScreen(),
       };
 }
